@@ -6,6 +6,10 @@ function sha1 (key, body) {
   return crypto.createHmac('sha1', key).update(body).digest('base64')
 }
 
+function sha256 (key, body) {
+  return crypto.createHmac('sha256', key).update(body).digest('base64');
+}
+
 function rsa (key, body) {
   return crypto.createSign("RSA-SHA1").update(body).sign(key, 'base64');
 }
@@ -42,7 +46,7 @@ function compare (a, b) {
 }
 
 function generateBase (httpMethod, base_uri, params) {
-  // adapted from https://dev.twitter.com/docs/auth/oauth and 
+  // adapted from https://dev.twitter.com/docs/auth/oauth and
   // https://dev.twitter.com/docs/auth/creating-signature
 
   // Parameter normalization
@@ -86,6 +90,16 @@ function hmacsign (httpMethod, base_uri, params, consumer_secret, token_secret) 
   return sha1(key, base)
 }
 
+function hmac256sign (httpMethod, base_uri, params, consumer_secret, token_secret) {
+  var base = generateBase(httpMethod, base_uri, params)
+  var key = [
+    consumer_secret || '',
+    token_secret || ''
+  ].map(rfc3986).join('&')
+
+  return sha256(key, base)
+}
+
 function rsasign (httpMethod, base_uri, params, private_key, token_secret) {
   var base = generateBase(httpMethod, base_uri, params)
   var key = private_key || ''
@@ -113,6 +127,9 @@ function sign (signMethod, httpMethod, base_uri, params, consumer_secret, token_
     case 'HMAC-SHA1':
       method = hmacsign
       break
+    case 'HMAC-SHA256':
+      method = hmac256sign
+      break
     case 'PLAINTEXT':
       method = plaintext
       skipArgs = 4
@@ -125,6 +142,7 @@ function sign (signMethod, httpMethod, base_uri, params, consumer_secret, token_
 }
 
 exports.hmacsign = hmacsign
+exports.hmac256sign = hmac256sign
 exports.rsasign = rsasign
 exports.plaintext = plaintext
 exports.sign = sign
